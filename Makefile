@@ -4,27 +4,26 @@ DIRS= `find -maxdepth 1  -type d ! -wholename \*.svn\* | grep /`
 PDF = $(addsuffix .pdf, $(basename $(wildcard *.eps)))
 FILE = "slides"
 BIB = "literature.bib"
-
+IMAGES = "images"
 
 show: all
 	evince ./$(FILE).pdf & 2> /dev/null
 
 all: $(PDF) $(GNUPLOT) $(INKSCAPE) 
-	pdflatex --halt-on-error ./$(FILE).tex
+	xelatex --halt-on-error ./$(FILE).tex
 
 literature.bib:
 
 %.pdf: %.plot *.dat $(FILE).bbl
-	gnuplot $(basename $@).plot 2> $(basename $@).log
-	touch $(basename $@).pdf
-	epstopdf $(basename $@).eps
+	gnuplot $(IMAGES)/$(basename $@).plot 2> $(IMAGES)/$(basename $@).log
+	touch $(IMAGES)/$(basename $@).pdf
+	epstopdf $(IMAGES)/$(basename $@).eps
 
 %.pdf: %.svg
-	inkscape $(basename $@).svg --export-eps=$(basename $@).eps
-	epstopdf $(basename $@).eps
+	inkscape $(IMAGES)/$(basename $@).svg --export-pdf=$(IMAGES)/$(basename $@).pdf
 
 %.pdf: %.eps
-	epstopdf $(basename $@).eps
+	epstopdf $(IMAGES)/$(basename $@).eps
 
 
 .PHONY: clean

@@ -1,0 +1,278 @@
+\ProvidesPackage{mydef}[2007/06/12 mydef package (LN)]
+\NeedsTeXFormat{LaTeX2e}
+
+% Makes the marginal notes more readable
+\let\oldmarginpar\marginpar
+\renewcommand\marginpar[1]{\-\oldmarginpar[\raggedleft\scriptsize\sf #1]{\raggedright\scriptsize\sf #1}}
+
+% side notes, switchable
+%\newboolean{includecom}
+%\setboolean{includecom}{true}
+%\newcommand{\comment}[1]{\ifthenelse{\boolean{includecom}}{\marginpar{#1}}{}}
+
+% Index-definition (koma)
+%\newcommand*{\indexsection}{\minisec}
+\newcommand*{\indexsection}[1]{%
+  \ifx\empty#1\empty\else
+  \hspace{0pt plus 2fil}{{\usekomafont{sectioning} #1}}\hspace{0pt plus
+    1fil}\nopagebreak
+  \fi
+}
+
+%bibtex: erstellen von richtigen hyperref-links
+\newcommand{\doi}[1]{\href{http://dx.doi.org/doi:#1}{(doi:#1})}
+
+%hyperref: internal text-links
+\newcommand{\mref}[2]{\hyperref[#1]{#2} (\ref*{#1})}
+\newcommand{\mreft}[2]{\hyperref[#1]{#2} (\autoref*{#1})}
+
+%\renewcommand{\chaptermark}[1]{\markboth{\chaptername\ \thechapter}{}}
+%%\let\uppercase\relax\leftmark
+%\rhead[]{\let\uppercase\relax\rightmark}
+%\lhead[\let\uppercase\relax\rightmark]{}
+%\lfoot[\thepage]{}
+%\cfoot[]{}
+%\rfoot[]{\thepage}
+
+%\renewcommand{\textfraction}{0}
+
+%%%
+
+% general
+\newcommand{\registered}{ {\ooalign{\hfil\raise .00ex\hbox{\scriptsize R}\hfil\crcr\mathhexbox20D} }}
+
+%%%%%%%%%%%%% Mathematisch
+\newcommand{\lap}{\ensuremath{\Delta}}
+\newcommand{\pr} {\prime}
+
+\DeclareMathOperator{\fak}{fak}
+\DeclareMathOperator{\cond}{cond}
+\DeclareMathOperator{\grad}{grad}
+\DeclareMathOperator{\gradd}{Grad}
+\DeclareMathOperator{\Div}{div}
+\DeclareMathOperator{\Divv}{Div}
+\DeclareMathOperator{\Id}{Id}
+\DeclareMathOperator{\rot}{rot}
+\DeclareMathOperator{\curl}{curl}
+\DeclareMathOperator{\Eig}{Eig}
+\DeclareMathOperator{\dist}{dist}
+\DeclareMathOperator{\sgn}{sgn}
+\DeclareMathOperator{\rang}{rang}
+
+%\DeclareMathOperator{\Imag}{Im}
+%\DeclareMathOperator{\Real}{Re}
+
+\DeclareMathOperator*{\Pol}{Pol}
+\DeclareMathOperator*{\Res}{Res}
+
+\newcommand{\td}{\; \mathsf{d}}
+%\DeclareMathOperator{\td}{d}
+
+%scattering support
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator{\cS}{cS}
+\newcommand{\cSsupp}{\ensuremath{\cS_\kappa \supp u_\infty}}
+\newcommand{\cSsuppE}{\ensuremath{\cS_\kappa \supp E^s|_M}}
+
+%Blackboard Bold - Buchstaben
+\newcommand{\Rset}{\ensuremath{\mathbb{R}}}
+\newcommand{\Zset}{\ensuremath{\mathbb{Z}}}
+\newcommand{\Cset}{\ensuremath{\mathbb{C}}}
+\newcommand{\Nset}{\ensuremath{\mathbb{N}}}
+\newcommand{\NsetZ}{\ensuremath{\mathbb{N}}_0}
+\newcommand{\Qset}{\ensuremath{\mathbb{Q}}}
+\newcommand{\Sset}{\ensuremath{\mathbb{S}}}
+
+\newcommand{\set}[1]{\left\{#1\right\}}
+\newcommand{\abs}[1]{\left\lvert#1\right\rvert}
+\newcommand{\Bnorm}[1]{\Big|\Big| #1\Big|\Big|}  
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}  
+
+\newcommand{\Bbetr}[1]{\Big|#1\Big|}
+\newcommand{\Lbetr}[1]{\left|#1\right|}
+
+% time derivatives
+\newcommand{\Dp}{\stackrel{{\textbf .}}{D}}
+\newcommand{\Bp}{\stackrel{{\textbf .}}{B}}
+
+
+%======================================================
+% theorems SIAM style
+%======================================================
+\theoremstyle{plain}% default
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{lem}{Lemma}[section]
+\newtheorem{prop}{Proposition}[section]
+\newtheorem*{cor}{Corollary}
+\newtheorem{algm}{Algorithm}
+
+\theoremstyle{definition}
+\newtheorem{defn}{Definition}[section]
+%\newtheorem{conj}{Conjecture}[section]
+\newtheorem{exmp}{Example}[section]
+
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+\newtheorem*{bemerk}{Bemerkung}
+%\newtheorem*{note}{Note}
+\newtheorem{case}{Case}
+
+% connect numbering between different theorems
+\makeatletter
+\let\c@lem\c@thm
+\let\c@prop\c@thm
+\let\c@defn\c@thm
+\let\c@exmp\c@thm
+\makeatother
+
+% This makes hyerref's \autoref understand \newtheorem
+%\makeatletter
+%\let\realnewtheorem=\newtheorem
+%\def\newtheorem#1{\expandafter\def\csname \#1name\endcsname{#2}}
+%\makeattother
+
+\let\fullref\autoref
+%
+%  \autoref is very crude.  It uses counters to distinguish environments
+%  so that if say {lemma} uses the {theorem} counter, then autrorefs
+%  which should come out Lemma X.Y in fact come out Theorem X.Y.  To
+%  correct this give each its own counter eg:
+%                 \newtheorem{theorem}{Theorem}[section]
+%                 \newtheorem{lemma}{Lemma}[section]
+%  and then equate the counters by commands like:
+%                 \makeatletter
+%                   \let\c@lemma\c@theorem
+%                  \makeatother
+%
+%  To work correctly the environment name must have a corrresponding 
+%  \XXXautorefname defined.  The following command does the job:
+%
+\def\makeautorefname#1#2{\expandafter\def\csname#1autorefname\endcsname{#2}}
+%
+%  Some standard autorefnames.  If the environment name for an autoref 
+%  you need is not listed below, add a similar line to your TeX file:
+%  
+\makeautorefname{equation}{Equation}%
+\makeautorefname{footnote}{footnote}%
+\makeautorefname{item}{item}%
+\makeautorefname{figure}{Figure}%
+\makeautorefname{table}{Table}%
+\makeautorefname{part}{Part}%
+\makeautorefname{appendix}{Appendix}%
+\makeautorefname{chapter}{Chapter}%
+\makeautorefname{section}{Section}%
+\makeautorefname{subsection}{Section}%
+\makeautorefname{subsubsection}{Section}%
+\makeautorefname{paragraph}{Paragraph}%
+\makeautorefname{subparagraph}{Paragraph}%
+\makeautorefname{theorem}{Theorem}%
+\makeautorefname{theo}{Theorem}%
+\makeautorefname{thm}{Theorem}%
+\makeautorefname{addendum}{Addendum}%
+\makeautorefname{addend}{Addendum}%
+\makeautorefname{add}{Addendum}%
+\makeautorefname{maintheorem}{Main theorem}%
+\makeautorefname{mainthm}{Main theorem}%
+\makeautorefname{corollary}{Corollary}%
+\makeautorefname{corol}{Corollary}%
+\makeautorefname{coro}{Corollary}%
+\makeautorefname{cor}{Corollary}%
+\makeautorefname{lemma}{Lemma}%
+\makeautorefname{lemm}{Lemma}%
+\makeautorefname{lem}{Lemma}%
+\makeautorefname{sublemma}{Sublemma}%
+\makeautorefname{sublem}{Sublemma}%
+\makeautorefname{subl}{Sublemma}%
+\makeautorefname{proposition}{Proposition}%
+\makeautorefname{proposit}{Proposition}%
+\makeautorefname{propos}{Proposition}%
+\makeautorefname{propo}{Proposition}%
+\makeautorefname{prop}{Proposition}%
+\makeautorefname{property}{Property}
+\makeautorefname{proper}{Property}
+\makeautorefname{scholium}{Scholium}%
+\makeautorefname{step}{Step}%
+\makeautorefname{conjecture}{Conjecture}%
+\makeautorefname{conject}{Conjecture}%
+\makeautorefname{conj}{Conjecture}%
+\makeautorefname{question}{Question}
+\makeautorefname{questn}{Question}
+\makeautorefname{quest}{Question}
+\makeautorefname{ques}{Question}
+\makeautorefname{qn}{Question}
+\makeautorefname{definition}{Definition}%
+\makeautorefname{defin}{Definition}%
+\makeautorefname{defi}{Definition}%
+\makeautorefname{def}{Definition}%
+\makeautorefname{defn}{Definition}%
+\makeautorefname{notation}{Notation}
+\makeautorefname{nota}{Notation}
+\makeautorefname{notn}{Notation}
+\makeautorefname{remark}{Remark}%
+\makeautorefname{rema}{Remark}%
+\makeautorefname{rem}{Remark}%
+\makeautorefname{rmk}{Remark}%
+\makeautorefname{rk}{Remark}%
+\makeautorefname{remarks}{Remarks}%
+\makeautorefname{rems}{Remarks}%
+\makeautorefname{rmks}{Remarks}%
+\makeautorefname{rks}{Remarks}%
+\makeautorefname{example}{Example}%
+\makeautorefname{examp}{Example}%
+\makeautorefname{exmp}{Example}%
+\makeautorefname{exam}{Example}%
+\makeautorefname{exa}{Example}%
+\makeautorefname{algorithm}{Algorithm}%
+\makeautorefname{algo}{Algorithm}%
+\makeautorefname{alg}{Algorithm}%
+\makeautorefname{algm}{Algorithm}%
+\makeautorefname{axiom}{Axiom}%
+\makeautorefname{axi}{Axiom}%
+\makeautorefname{ax}{Axiom}%
+\makeautorefname{case}{Case}%
+\makeautorefname{claim}{Claim}%
+\makeautorefname{clm}{Claim}%
+\makeautorefname{assumption}{Assumption}%
+\makeautorefname{assumpt}{Assumption}%
+\makeautorefname{conclusion}{Conclusion}%
+\makeautorefname{concl}{Conclusion}%
+\makeautorefname{conc}{Conclusion}%
+\makeautorefname{condition}{Condition}%
+\makeautorefname{condit}{Condition}%
+\makeautorefname{cond}{Condition}%
+\makeautorefname{construction}{Construction}%
+\makeautorefname{construct}{Construction}%
+\makeautorefname{const}{Construction}%
+\makeautorefname{cons}{Construction}%
+\makeautorefname{criterion}{Criterion}%
+\makeautorefname{criter}{Criterion}%
+\makeautorefname{crit}{Criterion}%
+\makeautorefname{exercise}{Exercise}%
+\makeautorefname{exer}{Exercise}%
+\makeautorefname{exe}{Exercise}%
+\makeautorefname{problem}{Problem}%
+\makeautorefname{problm}{Problem}%
+\makeautorefname{probm}{Problem}%
+\makeautorefname{prob}{Problem}%
+\makeautorefname{solution}{Solution}%
+\makeautorefname{soln}{Solution}%
+\makeautorefname{sol}{Solution}%
+\makeautorefname{summary}{Summary}%
+\makeautorefname{summ}{Summary}%
+\makeautorefname{sum}{Summary}%
+\makeautorefname{operation}{Operation}%
+\makeautorefname{oper}{Operation}%
+\makeautorefname{observation}{Observation}%
+\makeautorefname{observn}{Observation}%
+\makeautorefname{obser}{Observation}%
+\makeautorefname{obs}{Observation}%
+\makeautorefname{ob}{Observation}%
+\makeautorefname{convention}{Convention}%
+\makeautorefname{convent}{Convention}%
+\makeautorefname{conv}{Convention}%
+\makeautorefname{cvn}{Convention}%
+\makeautorefname{warning}{Warning}%
+\makeautorefname{warn}{Warning}%
+\makeautorefname{note}{Note}%
+\makeautorefname{fact}{Fact}%
+

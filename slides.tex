@@ -1,51 +1,5 @@
-\documentclass[notes=hide,yellow]{beamer}
-
-% (c) 2008 Steffen Klemer <moh AT gmx BEEP org>
-% This work is licensed under the Creative Commons Attribution-Share Alike 3.0
-% Germany License. To view a copy of this license, visit
-% http://creativecommons.org/licenses/by-sa/3.0/de/ or send a letter to Creative
-% Commons, 171 Second Street, Suite 300, San Francisco, California, 94105, USA.
-%
-% See http://www.noch-mehr-davon.de/vortr.shtml
-% Permissions beyond the scope of this license may be available at the same site
-%
-% Template based on: Copyright 2004 by Till Tantau <tantau@users.sourceforge.net>.
-
-
-\mode<presentation>
-{
-%	\usetheme{AnnArbor} %Szeged
-%	\usetheme{Berkeley}
-	\usetheme{Dresden}
-%	\usecolortheme{rose} %oder beaver oder rose oder orchid, albatross, rose
-% 	\useinnertheme{circles}
-%	\useoutertheme{split}
-%	\setbeamercovered{invisible} %or transparent
-% 	\usefottheme{professionalfonts}
-% 	\usefonttheme[onlymath]{serif}
-        %\setbeamercovered{invisible}
-%	\setbeamertemplate{navigation symbols}{}
-}
-
-\usepackage{amsmath,amssymb,latexsym}
-\usepackage{fancyvrb}
-\usepackage{graphicx}
-\usepackage{epstopdf}
-\usepackage{amsfonts}
-\usepackage{amsthm}
-\usepackage{wasysym}
-\usepackage{ucs}
-\usepackage{stmaryrd}
-\usepackage{hyperref}
-\usepackage{graphics}
-\usepackage{colortbl}
-\usepackage[ngerman]{babel}
-\usepackage[utf8x]{inputenc}
-\usepackage{tikz}
-%\usepackage[sort&compress]{natbib}
-\usepackage{listings}
-
-
+\documentclass[hyperref={xetex}]{beamer}
+\input{slide_header}
 
  
 \lstset{ %
@@ -74,9 +28,9 @@
   morekeywords={*,...}               % if you want to add more keywords to the set
 }
 
-\title{Das verteilte Filesystem Ceph als Storage-Lösung}
-\subtitle{ }
-\author{Ralph Krimmel}
+\title{Das Praxis-Problem der Nutzung verteilter Filesysteme in der NAM}
+\subtitle{ Ceph, Discofs, ZFS ..}
+\author{Jochen Schulz and Ralph Krimmel}
 
 
 
@@ -91,91 +45,111 @@
 	\end{frame}
 
 
-\section{Einf\"uhrung}
+\section{Einf\"uhrung und Motivation}
 \subsection*{}
 
-\begin{frame}{Motivation}
-
-\begin{itemize}
-	\item Institut f\"ur Numerische und Angwandte Mathematik
-	\item \textasciitilde 50 Mitarbeiter
-	\item Hardware: 10 inhomogene Server
-	\item Kein SAN
-	\item Dienste (schon teilweise virtualisiert)
-	\begin{itemize}
-		\item Fileserver
-		\item Webserver
-		\item Email \& Groupware
-		\item Jabber
-		\item Diverse Lizenzserver
-		\item Versionsverwaltung (svn, git, hg)
-		\item ...
-	\end{itemize}
-\end{itemize}
+\begin{frame}{Philosophie
+    clients als laptops}
+    Philosophie: Trennung von Wissenschaftlichen Rechnen vom taeglichen Arbeiten
+    folgt: Daten ueberall geshared
+    alternativ: dropbox/powerfolder/git \ldots 
+    grundsaetzliche vor- und nachteile?
 \end{frame}
 
-\begin{frame}{Probleme}
+
+\begin{frame}{Bestehendes Setup}
+	\textasciitilde 50 Mitarbeiter und Doktoranden (Laptops - Datensync!)
+    kein SAN
+    compute-server, login-server
+	\begin{itemize}
+		\item Fileserver (2)
+			\begin{itemize}
+				\item Dateisystem: ZFS 
+				\item Netzwerkdateisystem: NFS (v3) und samba
+                \item \textsl{Hot spare Replikation} durch AVS
+			\end{itemize} 
+		\item <2> Restliche Server (6): Virtualisiert mit OpenVZ
+	\begin{itemize}
+		\item Email \& Groupware und LDAP
+		\item Diverse Lizenzserver
+		\item nameserver und dhcpd
+        \item puppet und FAI    
+	\end{itemize}
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{Schwierigkeiten des Setups}
 
 	\begin{itemize}
 		\item Fileserver
 			\begin{itemize}
-				\item Dateisystem: ZFS 
-				\item Netzwerkdateisystem: NFS
-				\item \glqq Hot spare Replikation\grqq 
-				\item $\Rightarrow$ Nadel\"ohr
-			\end{itemize} 
+				\item ZFS  (?)
+				\item NFS hat nur einen Zugangsknoten$\Rightarrow$ ineffiziente Hardware-Nutzung  
+                \item NFS wegen Sicherheit und des clientssetups nur lokal nutzbar
+                \item \textbf{AVS} verursacht Last auf dem Server
+            \end{itemize} 
 		\item <2> Restliche Server
 			\begin{itemize}
 				\item Unbenutzte Speicherkapazit\"at
-				\item Unbenutzte Rechenapazit\"at
-				\item Unzureichende Verf\"ugbarkeit bei Fehlern
+				\item Unbenutzte Rechenkapazit\"at (Balancing nur schwer möglich)
+				\item Unzureichende Verf\"ugbarkeit bei Fehlern (single point of failure)
 			\end{itemize}
 	\end{itemize}
 \end{frame}
 
-\begin{frame}{Fileserver Availability}
+
+\begin{frame}{L\"osungsansatz: private Cloud}
+		Verteiltes, fehler-tolerantes Dateisystem (Distributed parallel fault-tolerant file systems)
+	%		\begin{itemize}
+	%			\item Ausfalltoleranz (Verf\"ugbarkeit und Zuverl\"assigkeit) durch Replikation
+	%			\item Hohe Performanz durch Striping %Aufteilen der Daten auf mehrere physikalische Devices
+	%		\end{itemize}
+	
+	\begin{itemize}
+		\item [Setup A] Jeder Server wird Hypervisor und gleichzeitig Storage-Knoten. Clients nutzen alle Storage-Knoten.
+        \item [Setup B] VM-Cluster und clients nutzen getrennten Storage-Cluster
+	\end{itemize}
+%TODO: mehr! siehe adminwiki
+
+\end{frame}
+\begin{frame}{Schwierigkeiten der Datensynchronisation der Laptops}
+unison    
+discofs
+ganz abkoppeln?
+ceph-erweiterung?
+\end{frame}
+
+\subsection{Aktuell  (NFS, ZFS und OpenVZ)}
+
+%\begin{frame}{Definition}
+%		In computing, a distributed file system or network file system is any file system that allows access to files from multiple hosts via a computer network.$[1]$
+%	\tiny{$[1]$ Galvin Silberschatz (1994). Operating System concepts, chapter 17 Distributed file systems. Addison-Wesley Publishing Company.} \\ 
+%\end{frame}
+\begin{frame}{ZFS}
+   zfs 
+\end{frame}
+\begin{frame}{NFS}
+
+		entwickelt von Sun Microsystems in 1984
+		\begin{center}
+			\includegraphics[scale=0.2]{images/nfs.pdf}
+		\end{center}
+		\begin{itemize}
+			\item Nicht Skalierbar $\Rightarrow$ schlechte Performanz bei vielen Clients.
+			\item Keine Fehlertoleranz
+		\end{itemize}
+\end{frame}
+
+\begin{frame}{Fileserver Availability durch AVS}
 	\begin{center}
-	\includegraphics[width=0.65\textwidth]{availabilitysuitenew.jpg}
+	\includegraphics[width=0.65\textwidth]{images/availabilitysuitenew.jpg}
 	\end{center}
 	\small
 	Quelle: \texttt{http://hub.opensolaris.org/bin/view/Project+avs/}
 \end{frame}
 
-
-\begin{frame}{L\"osungsansatz}
-	
-	\begin{itemize}
-		\item Jeder Server wird Hypervisor
-		\item Verteiltes Dateisystem 
-	%		\begin{itemize}
-	%			\item Ausfalltoleranz (Verf\"ugbarkeit und Zuverl\"assigkeit) durch Replikation
-	%			\item Hohe Performanz durch Striping %Aufteilen der Daten auf mehrere physikalische Devices
-	%		\end{itemize}
-		\item <2> \glqq Private Cloud\grqq ;)
-	\end{itemize}
-
-\end{frame}
-
-\begin{frame}{Definition}
-		In computing, a distributed file system or network file system is any file system that allows access to files from multiple hosts via a computer network.$[1]$
-	\tiny{$[1]$ Galvin Silberschatz (1994). Operating System concepts, chapter 17 Distributed file systems. Addison-Wesley Publishing Company.} \\ 
-\end{frame}
-
-\begin{frame}{Nichts neues...}
-
-		z.B. NFS, entwickelt von Sun Microsystems in 1984
-		\begin{center}
-			\includegraphics[scale=0.2]{nfs.pdf}
-		\end{center}
-		\begin{itemize}
-			\item Schlechte Performanz bei vielen Clients \\ $\Rightarrow$ Skaliert nicht
-			\item Keine Fehlertoleranz
-		\end{itemize}
-\end{frame}
-
-
-
-\begin{frame}{Anforderungen an ein modernes, verteiltes Dateisystem}
+\section{Parallel, distributed, fault-tolerant filesystems}
+\begin{frame}{Anforderungen an ein verteiltes Dateisystem}
 	\begin{itemize}
 		\item Hohe Performanz durch Striping
 			\begin{itemize}
@@ -222,13 +196,13 @@
 
 \begin{frame}{Typischer Zugriff (z.B. Hadoop)}
 	\begin{center}
-	\includegraphics[scale=0.2]{hdfsarchitecture.jpg}
+	\includegraphics[scale=0.2]{images/hdfsarchitecture.jpg}
 	\end{center}
 	\small
 	Quelle: \texttt{http://hadoop.apache.org/common/docs/r0.20.2/hdfs\_design.html}
 \end{frame}
 
-
+\subsection{Weitere verteilte Dateisysteme}
 \begin{frame}{Weitere verteilte Dateisysteme}
 	\begin{center}
 		\begin{tabular}{|c|c|}
@@ -243,15 +217,10 @@
 	\end{center}
 \end{frame}
 
+\subsection{Ceph}
 
-\section{Ceph - Theorie}
-\subsection*{}
 
-\begin{frame}
-	\begin{center}
-	\Large{Ceph}
-	\end{center}
-\end{frame}
+\subsubsection{Theorie}
 
 \begin{frame}{Ceph - \"Ubersicht}
 	
@@ -270,7 +239,7 @@
 
 \begin{frame}
 	\begin{center}
-		\includegraphics{ceph_architecture.pdf}
+		\includegraphics{images/ceph_architecture.pdf}
 	\end{center}
 	Quelle: \cite{weil2006}
 \end{frame}
@@ -329,18 +298,11 @@
 
 \begin{frame}{CRUSH}
 	\begin{center}
-	\includegraphics{crush.pdf}
+	\includegraphics{images/crush.pdf}
 \end{center}
 \end{frame}
 
-\section{Ceph - Praxis}
-\subsection*{}
-
-\begin{frame}
-	\begin{center}
-	\Large{Ceph Praxis}
-	\end{center}
-\end{frame}
+\subsubsection{Praxis}
 
 
 \begin{frame}{Vorraussetzungen}
@@ -506,6 +468,8 @@
 	\end{itemize}
 \end{frame}
 
+\section{Erfahrungen, Zusammenfassung und Ausblick}
+
 \begin{frame}{Probleme (CephFS)}
     \begin{itemize}
         \item Crash bei mount mit dem Kernel Treiber auf OSD-Server.
@@ -523,21 +487,12 @@
 	\item Einiges unvollst\"andig implementiert 
 	\item $\Rightarrow$ Warten auf stable
 \end{itemize}
+	\begin{center}
+	\large Fragen? Anregungen? Vorschl\"age? 
+	\end{center}
 \end{frame}
 
-\section{Fragen}
-\subsection*{}
-\begin{frame}
-	\begin{center}
-	\large Fragen? Anregungen? Vorschl\"age? Rants?
-	\end{center}
 	
-	\begin{center}
-	\includegraphics[scale=0.8]{questions.jpg}
-	\end{center}
-\end{frame}
-
-
 
 \begin{frame}{Literatur}
 	\bibliographystyle{apalike}

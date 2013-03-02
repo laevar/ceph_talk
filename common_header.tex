@@ -1,0 +1,148 @@
+\usepackage{fontspec,xunicode,xltxtra}
+%\setdefaultlanguage[spelling=new, latesthyphen=true]{german}
+%\setsansfont{DejaVu Sans}
+%\setsansfont{Verdana}
+%\setsansfont{Arial}
+%\setromanfont[Mapping=tex-text]{Linux Libertine}
+%\setsansfont[Mapping=tex-text]{Myriad Pro}
+%\setmonofont[Mapping=tex-text]{Courier New}
+%\setsansfont{Linux Biolinum}
+
+\usepackage[ngerman]{babel}
+\selectlanguage{ngerman}
+
+%\usepackage{sagetex}
+
+%
+% math/symbols
+%
+\usepackage{amssymb}
+% \usepackage{latexsym}
+\usepackage{amsmath}
+\usepackage{amsthm}
+%\usepackage{amsxtra} %Weitere Extrasymbole
+%\usepackage{empheq} %Gleichungen hervorheben
+%\usepackage{bm}
+ %\bm{A} Boldface im Mathemodus
+
+\usepackage{multimedia}
+%\usepackage{tikz}
+
+\usepackage{cellspace}
+\setlength{\cellspacetoplimit}{2pt}
+\setlength{\cellspacebottomlimit}{2pt}
+
+%%%%%%%%%%%%%%%%%% Fuer Frames [fragile]-Option verwenden!
+%Programm-Listing
+%%%%%%%%%%%%%%%%%%
+%Listingsumgebung fuer verbatim
+%Grauhinterlegeter Text
+%Automatischer Zeilenumbruch ist aktiviert
+\usepackage{listings}
+% This command allows you to typeset syntax highlighted Matlab
+% code ``inline''.
+\newcommand{\isage}[1]{\lstinline|#1|}
+
+\definecolor{lgray}{gray}{0.80}
+\definecolor{gray}{gray}{0.3}
+\definecolor{darkgreen}{rgb}{0,0.4,0}
+\definecolor{darkblue}{rgb}{0,0,0.8}
+\definecolor{key}{rgb}{0,0.5,0} 
+%\lstset{backgroundcolor=\color{lgray}, frame=single, basicstyle=\ttfamily, breaklines=true}
+\lstnewenvironment{sageout}[1][]{\lstset{xleftmargin=0.2cm,frame=none,backgroundcolor=\color{white},basicstyle=\color{darkblue}\ttfamily\small,#1}}{} 
+\lstnewenvironment{sagein}[1][]{\lstset{#1}}{} 
+%\lstnewenvironment{sage}{\lstset{,language=python, keywordstyle=color{blue},    commentstyle=color{green}, emphstyle=\color{red}, %frame=single, stringstyle=\color{red}, basicstyle=\ttfamily, ,mathescape =true,escapechar=§}}{}
+
+%\renewcommand{\sagecommandlinetextoutput}{False}
+
+\lstdefinestyle{SageInput}{style=DefaultSageInput,basicstyle=\ttfamily\small}
+\lstdefinestyle{SageOutput}{style=DefaultSageOutput,basicstyle=\ttfamily\small}
+
+
+\lstset{
+language=python,
+backgroundcolor=\color{lgray},
+breaklines=true,
+basicstyle=\ttfamily\small,
+%otherkeywords={ =},
+keywordstyle=\color{blue},
+stringstyle=\color{darkgreen},
+showstringspaces=false,
+emph={class, pass, in, for, while, if, is, elif, else, not, and, or,
+def, print, exec, break, continue, return},
+emphstyle=\color{blue},
+emph={[2]True, False, None, self},
+emphstyle=[2]\color{key},
+emph={[3]from, import, as},
+emphstyle=[3]\color{blue},
+upquote=true,
+morecomment=[s]{"""}{"""},
+commentstyle=\color{gray}\slshape,
+%framexleftmargin=1mm, framextopmargin=1mm, 
+frame=single,
+mathescape =true,
+escapechar=§
+}
+
+
+\usepackage{mydef}
+%\usepackage{cmap} % you can search in the pdf for umlauts and ligatures
+\usepackage{colonequals} %corrects the definition-symbols \colonequals (besides others)
+\usepackage{ifthen}
+%%%%%%%%%%%%%%%%%%%
+%Neue Definitionen
+%%%%%%%%%%%%%%%%%%%
+
+%Newcommands
+\newcommand{\Fun}[1]{\mathcal{#1}}      %Mathcal fuer Funktoren
+\newcommand{\field}[1]{\mathbb{#1}}     %Grundkoerper ?? in mathds
+
+\newcommand{\A}{\field{A}}              %Affines A
+\newcommand{\Fp}{\field{F}_{\!p}}       %Endlicher Koerper mit p Elementen
+\newcommand{\Fq}{\field{F}_{\!q}}       %Endlicher Koerper mit q Elementen
+\newcommand{\Ga}{\field{G}_{a}}         %Add Gruppenschema
+\newcommand{\K}{\field{K}}              %Generischer Koerper 
+\newcommand{\N}{\field{N}}              %Nat Zahlen
+\newcommand{\Pj}{\field{P}}             %Projektives P
+\newcommand{\R}{\field{R}} 		%Reelle Zahlen
+\newcommand{\Q}{\field{Q}}              %Rationale Zahlen  
+\newcommand{\Qt}{\field{H}}             %Quaternionen 
+\newcommand{\V}{\field{V}}              %Vektorbuendel V
+\newcommand{\Z}{\field{Z}}              %Ganze Zahlen
+\DeclareMathOperator{\Real}{Re}
+
+\newcommand{\fdg}{\;|\;}                 %fuer die gilt
+
+%Operatoren
+\DeclareMathOperator{\Abb}{Abb}
+
+%
+% Aufgaben
+%
+\parindent0cm % Abs�tze nicht einr�cken 
+% Definieren einer neuen Farbe
+\definecolor{light-gray}{gray}{.9}
+
+\newcounter{zaehler}     % neuen Z�hler einf�hren
+\stepcounter{zaehler}    % Z�hler einen hochz�hlen
+
+\newenvironment{aufg}[1][0]
+%---- Header
+{\begin{samepage}%
+%\colorbox{light-gray}{%                         % Box in gray
+% \makebox[\textwidth]{%                           % Box in linewidth
+%\textbf{Aufgabe \arabic{zaehler} } }\hspace{-\textwidth}\makebox[\textwidth]{\hfill #1 Punkte} }\\[0.05cm]       % Header
+\dotfill\\
+{\large\textbf{Aufgabe \arabic{zaehler} }\ifthenelse{-1=#1}{(testierbar)}{}\ifthenelse{0=#1 \or -1=#1}{}{\hfill #1 Punkte} }\\[0.4cm]
+\begin{minipage}{\textwidth}%
+}%
+%-----  foot
+{\end{minipage}\nopagebreak%\begin{minipage}{1cm} \end{minipage}
+%\\ 
+%\begin{minipage}{0.1cm} \end{minipage} 
+%\hrulefill \begin{minipage}{1cm} \end{minipage}\\[1cm]  
+\stepcounter{zaehler}                           % increase counter
+\end{samepage}%
+\\%
+\bigskip%
+}
