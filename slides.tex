@@ -22,15 +22,15 @@
   title=\lstname,                   % show the filename of files included with \lstinputlisting;
                                   % also try caption instead of title
   keywordstyle=\color{blue},          % keyword style
-  commentstyle=\color{dkgreen},       % comment style
+  commentstyle=\color{gray},       % comment style
   stringstyle=\color{mauve},         % string literal style
   escapeinside={\%*}{*)},            % if you want to add LaTeX within your code
   morekeywords={*,...}               % if you want to add more keywords to the set
 }
 
-\title{Das Praxis-Problem der Nutzung verteilter Filesysteme in der NAM}
-\subtitle{ Ceph, Discofs, ZFS ..}
-\author{Jochen Schulz and Ralph Krimmel}
+\title{Das Praxis-Problem von remote Filesystemen in der NAM}
+\subtitle{ Ceph, DiscoFS, ZFS, Client-Sync, \ldots}
+\author{Jochen Schulz, Ralph Krimmel, Max Voit}
 
 
 
@@ -48,31 +48,57 @@
 \section{Einf\"uhrung und Motivation}
 \subsection*{}
 
-\begin{frame}{Philosophie
-    clients als laptops}
-    Philosophie: Trennung von Wissenschaftlichen Rechnen vom taeglichen Arbeiten
-    folgt: Daten ueberall geshared
-    alternativ: dropbox/powerfolder/git \ldots 
-    grundsaetzliche vor- und nachteile?
+\begin{frame}{Philosophie und gewünschtes Setup}
+    \begin{block}{A: Synchron}
+    \begin{itemize}    
+        \item Compute-server: (Fokus: Compute)
+        \item Clients: Laptops mit remote gemounteten Home (Fokus: tägliche Arbeit)
+        \item (File-)Server: (Fokus: shared ressources)
+    \end{itemize}
+\end{block}
+
+\begin{block}{B: Asynchron}
+    \begin{itemize}
+                    \item  Daten stets (auch) lokal. 
+                    \item Asynchroner Datenabgleich mit remote storage (dropbox,powerfolder,git \ldots )
+                \end{itemize}
+
+\end{block}
+\end{frame}
+
+\begin{frame}{Philosophie und gewünschtes Setup}
+
+\begin{block}{Prinzipielle Vor- und Nachteile}
+    \begin{itemize}
+        \item A: Flexibilität im Ort und Gerät (Keine Transferzeit)
+        \item A: Parallelität
+        \item A: Homogenität und Synchrones Arbeiten (z.B. lokales Editieren , remote Ausführen)
+        \item B: Mobilität des Geräts
+        \item B: Daten stets lokal (aber Transferzeit)
+    \end{itemize}
+    
+\end{block}
+    
+
 \end{frame}
 
 
-\begin{frame}{Bestehendes Setup}
-	\textasciitilde 50 Mitarbeiter und Doktoranden (Laptops - Datensync!)
-    kein SAN
-    compute-server, login-server
+\begin{frame}{Details bestehendes Setup (Typ A)}
 	\begin{itemize}
-		\item Fileserver (2)
+        \item \alert{clients ($\approx$ 50):} Linux-Laptops, Datensync per unison
+        \item \alert{Login Server (2):} remote Desktop, ssh, Datentransfer
+        \item \alert{Compute Server (6):} remote Desktop, ssh, Datentransfer, FHGFS, WiRe, CUDA
+        \item \alert{Fileserver (2):} (kein SAN)
 			\begin{itemize}
-				\item Dateisystem: ZFS 
+				\item lokales Dateisystem: ZFS 
 				\item Netzwerkdateisystem: NFS (v3) und samba
                 \item \textsl{Hot spare Replikation} durch AVS
 			\end{itemize} 
-		\item <2> Restliche Server (6): Virtualisiert mit OpenVZ
+        \item <2> \alert{Sonstige Server (6):} Virtualisiert mit OpenVZ
 	\begin{itemize}
 		\item Email \& Groupware und LDAP
 		\item Diverse Lizenzserver
-		\item nameserver und dhcpd
+		\item Nameserver und dhcpd
         \item puppet und FAI    
 	\end{itemize}
 	\end{itemize}
@@ -83,64 +109,145 @@
 	\begin{itemize}
 		\item Fileserver
 			\begin{itemize}
-				\item ZFS  (?)
-				\item NFS hat nur einen Zugangsknoten$\Rightarrow$ ineffiziente Hardware-Nutzung  
-                \item NFS wegen Sicherheit und des clientssetups nur lokal nutzbar
-                \item \textbf{AVS} verursacht Last auf dem Server
+				\item ZFS  (nur lokal)
+				\item NFS hat nur einen Zugangsknoten$\Rightarrow$ ineffiziente Hardware-Nutzung, keine intrinsische Redundanz
+                \item NFS wegen Sicherheit und des clientssetups nur intern nutzbar
+                \item \textbf{AVS} verursacht Last auf dem Haupt-Server
             \end{itemize} 
-		\item <2> Restliche Server
+		\item <2-3> Sonstige Server
 			\begin{itemize}
 				\item Unbenutzte Speicherkapazit\"at
 				\item Unbenutzte Rechenkapazit\"at (Balancing nur schwer möglich)
 				\item Unzureichende Verf\"ugbarkeit bei Fehlern (single point of failure)
 			\end{itemize}
+        \item <3> Clients
+             \begin{itemize}
+                 \item Nicht sehr mobil (Mobilität erfordert Restart)
+                 \item Datensynchronisation (Unison) kostet Zeit und Ressourcen bei Login/Logout
+                 \item User muss Vorgang verstehen und beobachten.
+			\end{itemize}
 	\end{itemize}
 \end{frame}
 
 
-\begin{frame}{L\"osungsansatz: private Cloud}
-		Verteiltes, fehler-tolerantes Dateisystem (Distributed parallel fault-tolerant file systems)
+\begin{frame}{Verbesserungsansatz - Serverseitig}
+		Nutzung von verteilten, fehler-toleranten Dateisystem (Distributed parallel fault-tolerant file systems) und damit storage-cluster und VM-Cluster.
+
+
 	%		\begin{itemize}
 	%			\item Ausfalltoleranz (Verf\"ugbarkeit und Zuverl\"assigkeit) durch Replikation
 	%			\item Hohe Performanz durch Striping %Aufteilen der Daten auf mehrere physikalische Devices
 	%		\end{itemize}
 	
+    \begin{block}{Varianten}
+        Hinweis: Grossteils alte Hardware ohne HVM/SVM-Flag
 	\begin{itemize}
-		\item [Setup A] Jeder Server wird Hypervisor und gleichzeitig Storage-Knoten. Clients nutzen alle Storage-Knoten.
-        \item [Setup B] VM-Cluster und clients nutzen getrennten Storage-Cluster
+		\item [$\alpha$]Jeder Server wird gleichzeitig Hypervisor und Storage-Knoten. 
+            \begin{itemize}
+                \item  LXC + Ceph (fuse)
+                \item  LXC + Glusterfs (fuse)
+                \item  OpenVZ + Lustre (alter Kernel!)
+            \end{itemize}
+        \item [$\beta$] Storage-Cluster getrennt vom VM-Cluster.
+            \begin{itemize}
+                \item OpenVZ + Ceph (getrennt wegen inkompatibler Kernel-Version)
+                \item Xen + Ceph RBD (getrennt wegen RBD kernel Treiber)
+                \item LXC + CephFS  (getrennt wegen kernel Treiber)
+            \end{itemize}
 	\end{itemize}
-%TODO: mehr! siehe adminwiki
+        
+    \end{block}
 
 \end{frame}
-\begin{frame}{Schwierigkeiten der Datensynchronisation der Laptops}
-unison    
-discofs
-ganz abkoppeln?
-ceph-erweiterung?
+
+\begin{frame}{Verbesserungsansatz - Clientseitig}
+    \begin{itemize}
+        \item Home abkoppeln, nur einzelne Verzeichnisse mounten. 
+        \item DiscoFS . FS-Overlay mit vollständigen lokalen Cache (FUSE)
+        \item Ceph-erweiterung für disconnected operations
+    \end{itemize}
 \end{frame}
 
-\subsection{Aktuell  (NFS, ZFS und OpenVZ)}
+\begin{frame}{DiscoFS - DISCOnnected File System}
+(Von Robin Martinjak) \href{DiscoFS}{https://github.com/rmartinjak/discofs}
+
+Idee: FS-Overlay-Schicht über lokalen Daten und remote Daten, die in Sync gehalten werden.
+
+Das erlaubt disconnected operations: Bei disconnect lokal, bei connect lokal und remote. 
+
+remote darf sich ebenfalls ändern,  worauf dann Conflict-Handling kommt.
+
+Komponenten: 
+
+\end{frame}
+
+\begin{frame}{Ceph-Erweiterung}
+Idee: Benutze CRUSH um eine zusaetzliche Replica eines Homes lokal auf dem Laptop abzulegen.
+
+Geht die Verbindung verloren sind alle Daten lokal und, theoretisch, kann der lokale Ceph-client 
+weiterarbeiten.
+
+Das Wiederverbinden ists bereits implementiert, allerdings braeuchte man noch ein Conflict-Handling.
+
+%potentially taking a crack at ceph-deploy
+%(https://github.com/ceph/ceph-deploy) in the meantime as that may be a
+%key piece of how you can roll out various pieces if it becomes more
+%robust.
+
+%Patrick told me briefly about the disconnected laptop idea.  My initial 
+%reaction is that this is a hard problem, but that there are some elements 
+%in the Ceph MDS that could make this work better than in other systems.  
+%%My assumption would be that you'd only want certain directories to be 
+%mirrored onto the mobile system, and that you'd allow divergent 
+%modifications, and resolve conflicts later.  The MDS's recursive mtime 
+%stuff would be one tool that would enable efficient recovery.  It may also 
+%be possible to build in a sort of 'op log' into the MDS for specific 
+%directories to enable an efficient sync (and handle things like directory 
+%rename efficiently).  I'm not sure that piggybacking on the DR framework 
+%would be the way to go.  All in all, though, a very interesting direction 
+%to go in, and something that would be great to look at.
+
+%That said, it's not something we (Inktank) would be able to work on 
+%directly, as we have other pressing priorities.  We can certainly work 
+%with you with design issues and with navigating the MDS code of course.
+
+%Anyway, that all said, if you are looking for something simpler to start 
+%with, there are lots of areas where some outside (devops) expertise can be 
+%applied.  There is going to be some management API work (a REST gateway 
+%and API to supplement the current CLI).  There's also ceph-deploy, which 
+%is an interesting prototype at this stage but needs lots of work (Linux 
+%distro independence, uninstall, etc.).
+\end{frame}
+
+\subsection{Ausflug ZFS}
 
 %\begin{frame}{Definition}
 %		In computing, a distributed file system or network file system is any file system that allows access to files from multiple hosts via a computer network.$[1]$
 %	\tiny{$[1]$ Galvin Silberschatz (1994). Operating System concepts, chapter 17 Distributed file systems. Addison-Wesley Publishing Company.} \\ 
 %\end{frame}
-\begin{frame}{ZFS}
-   zfs 
-\end{frame}
-\begin{frame}{NFS}
 
-		entwickelt von Sun Microsystems in 1984
-		\begin{center}
-			\includegraphics[scale=0.2]{images/nfs.pdf}
-		\end{center}
-		\begin{itemize}
-			\item Nicht Skalierbar $\Rightarrow$ schlechte Performanz bei vielen Clients.
-			\item Keine Fehlertoleranz
-		\end{itemize}
+\begin{frame}{ZFS - die eierlegende Wollmilchsau der lokalen Filesysteme}
+    Betriebssystem : Nexenta (Ubuntu mit einem Opensolaris-Kernel)\\
+    ZFS Eckdaten:
+    \begin{itemize}
+        \item virtuelle Partitionen: zpool (lvm)
+        \item eingebautes Redundanz RAID (dmraid). RaidZ
+        \item Snapshots, Encyption, Compression
+        \item Copy-on-Write
+        \item Sharing (nfs, samba)
+        \item \ldots
+    \end{itemize}
+    \alert{Praxis:} (Fast) alle Erwartungen wurden erfüllt. \\
+    \begin{itemize}
+        \item NFSv4 (war) instabil (aber eigentlich kein ZFS-Problem)
+        \item Komplexität kommt mit Intransparenz. 
+        \item Abstürze, Filesystem-Hänger, Snapshot-Performance
+        \item Benchmark
+    \end{itemize}
 \end{frame}
 
 \begin{frame}{Fileserver Availability durch AVS}
+    Blockbasiert, weiss nichts von ZFS.
 	\begin{center}
 	\includegraphics[width=0.65\textwidth]{images/availabilitysuitenew.jpg}
 	\end{center}
@@ -202,33 +309,27 @@ ceph-erweiterung?
 	Quelle: \texttt{http://hadoop.apache.org/common/docs/r0.20.2/hdfs\_design.html}
 \end{frame}
 
-\subsection{Weitere verteilte Dateisysteme}
-\begin{frame}{Weitere verteilte Dateisysteme}
-	\begin{center}
-		\begin{tabular}{|c|c|}
-		\hline
-		Dateisystem & Bemerkung \\
-		\hline
-		Lustre & Alter Kernel \\
-		Google File System & Propriet\"ar, ausgelegt auf große Dateien \\
-		GlusterFS & Nur FUSE, Alternative? Meinungen?\\
-		\hline
-	\end{tabular}
-	\end{center}
+\subsection{Auswahl verteilte Dateisysteme}
+\begin{frame}{Auswahl verteilte Dateisysteme}
+	\begin{description}	
+        \item [Lustre]  Alter Kernel und nur ein Metadatenserver \\
+        \item [Google FS] Propriet\"ar, ausgelegt auf große Dateien \\
+        \item [GlusterFS]  Nur FUSE, keine advanced features; im Vergleich Langsam (siehe Benchmark)\\
+        \item [XtremeFS] nett ;) aber Fokus liegt auf Geo-Features\\
+        \item [FHGS]  Propriet\"arer server, Opensource client. keine Redundanz, im HPC-Umfeld aber gut (Bei uns seit kurzem im Einsatz).
+        \item [pNFS] Vielversprechend, bisher aber keine Tests durchgeführt (zu spät?)
+	\end{description}
 \end{frame}
 
-\subsection{Ceph}
-
-
-\subsubsection{Theorie}
+\subsection{Ceph Theorie}
 
 \begin{frame}{Ceph - \"Ubersicht}
 	
 	Drei Komponenten:
 	\begin{itemize}
-		\item Client: Posix\"ahnliche Schnittstelle %Stellt zur verfuegung
-		\item OSD Cluster: Speichert Daten und Metadaten
-		\item Metadaten Cluster
+        \item \alert{Client:} Posix\"ahnliche Schnittstelle %Stellt zur verfuegung
+        \item \alert{OSD Cluster:} Speichert Daten und Metadaten
+        \item \alert{Metadaten Cluster}
 			\begin{itemize}
 				\item Verwaltet Namensraum
 				\item Konsistenz/Koh\"arenz
@@ -241,7 +342,7 @@ ceph-erweiterung?
 	\begin{center}
 		\includegraphics{images/ceph_architecture.pdf}
 	\end{center}
-	Quelle: \cite{weil2006}
+    Quelle: \cite{weil_ceph:_2006}
 \end{frame}
 
 
@@ -282,8 +383,15 @@ ceph-erweiterung?
 \end{enumerate}
 \end{frame}
 
+\begin{frame}{Dynamische Metadaten-Verteilung}
+	\begin{center}
+		\includegraphics[width=0.8\textwidth]{images/mds.jpg}
+	\end{center}
+    Quelle: \cite{weil_ceph:_2006}
+\end{frame}
+
 \begin{frame}{Client Synchronisierung}
-	Problem: Mehrere Clients schreiben lesen eine Datei gleichzeitig.
+	Problem: Mehrere Clients schreiben/lesen eine Datei gleichzeitig.
 
 	\begin{itemize}	
 		\item Kein read caching/write buffering mehr
@@ -302,7 +410,19 @@ ceph-erweiterung?
 \end{center}
 \end{frame}
 
-\subsubsection{Praxis}
+\begin{frame}{CRUSH!}
+%    \begin{center}
+%    \includegraphics[width=0.8\textwidth]{images/crush.png}
+%\end{center}
+
+Für $x \in \mathbb{N}$ ist $CRUSH$ eine Abbildung nach $R \in \mathbb{N}^n$ für $n  \in \mathbb{N}$.
+
+$x$ : Data-Object\\
+$R$ : Placement für $n$ Replicas
+ 
+\end{frame}
+
+\subsection{Ceph Praxis}
 
 
 \begin{frame}{Vorraussetzungen}
@@ -316,7 +436,7 @@ ceph-erweiterung?
 %			\item Snapshot Metadaten
 %			\item RADOS Gateway Access Control Lists (ACLs).
 		\end{itemize}
-		\item Empfohlen: Disk f\"ur je OS/Ceph
+		\item Empfohlen: Disk je OSD
 
 	\end{itemize}
 \end{frame}
@@ -351,9 +471,9 @@ ceph-erweiterung?
 \begin{frame}{Cluster Design}
 	3 Daemons
 	\begin{itemize}
-		\item ceph-osd: Object Storage
-		\item ceph-mds: Metadaten Server: Verteilter, koh\"arenter Cache f\"ur Metadaten %agiert
-		\item ceph-mon: Monitor, Cluster Management, Konfiguration und Zugangspunkt f\"ur CephFS
+        \item \alert{ceph-osd}: Object Storage
+        \item \alert{ceph-mds}: Metadaten Server: Verteilter, koh\"arenter Cache f\"ur Metadaten %agiert
+        \item \alert{ceph-mon}: Monitor, Cluster Management, Konfiguration und Zugangspunkt f\"ur CephFS
 	\end{itemize}
 \end{frame}
 
@@ -361,7 +481,7 @@ ceph-erweiterung?
 \begin{frame}{Object Storage Daemon}
 	\begin{itemize}
 		\item Mehrere OSDs pro Host m\"oglich
-		\item Hardware:
+		\item Hardware Vor.:
 		\begin{itemize}
 			\item Viele Festplatten 
 			\item Viel Ram (besseres Caching) (min. 500MB/Daemon)
@@ -378,7 +498,7 @@ ceph-erweiterung?
 \begin{frame}{Metadaten Daemon}
 	\begin{itemize}
 
-		\item Hardware:
+		\item Hardware Vor.:
 		\begin{itemize}
 			\item Sehr viel Ram
 			\item Schnelle CPU
@@ -395,7 +515,7 @@ ceph-erweiterung?
 
 \begin{frame}{Monitor Daemon}
 	\begin{itemize}
-		\item Hardware:
+		\item Hardware Vor.:
 		\begin{itemize}
 			\item Einige GB Festplattenspeicher
 			\item Feste IP
@@ -458,34 +578,79 @@ ceph-erweiterung?
 \end{frame}
 
 
+\begin{frame}[fragile]{CRUSH-map}
+    \begin{lstlisting}
+# buckets
+host paimutan {
+        id -2           # do not change unnecessarily
+        # weight 1.000
+        alg straw
+        hash 0  # rjenkins1
+        item osd.0 weight 1.000
+}
+host darjeeling {
+        id -4           # do not change unnecessarily
+        # weight 1.000
+        alg straw
+        hash 0  # rjenkins1
+        item osd.1 weight 1.000
+}
+rack unknownrack {
+        id -3           # do not change unnecessarily
+        # weight 6.000
+        alg straw
+        hash 0  # rjenkins1
+        item paimutan weight 1.000
+        item darjeeling weight 1.000
+        item gunpowder weight 1.000
+        item earlgrey weight 1.000
+        item lemongrass weight 1.000
+        item oolong weight 1.000
+}
+pool default {
+        id -1           # do not change unnecessarily
+        # weight 6.000
+        alg straw
+        hash 0  # rjenkins1
+        item unknownrack weight 6.000
+}
+    \end{lstlisting}
+\end{frame}
 
 \begin{frame}{Zugriff}
 	\begin{itemize}
 		\item Kerneltreiber
 		\item FUSE
-		\item librados
+		\item librados (RBD)
 		\item Rados Gateway (RESTful interface)
 	\end{itemize}
 \end{frame}
 
-\section{Erfahrungen, Zusammenfassung und Ausblick}
+\section{Erfahrungen}
 
-\begin{frame}{Probleme (CephFS)}
-    \begin{itemize}
-        \item Crash bei mount mit dem Kernel Treiber auf OSD-Server.
-        \item Performance beim Kopieren von vielen Dateien noch gering.
-    \end{itemize}
-    \alert{Jedoch:} Selbstheilung sehr gut.
+\begin{frame}{CephFS}
+    \begin{block}{Gut}
+        Selbstheilung sehr gut.
+    \end{block}
     %nur bei extremen Ausfaellen und Netz-beintraechtigung ging der Cluster in die Knie (degraded).
     %Nur einmal bei so einem Test gab es permanenten Datenverlust und wir mussten den cluster neu formatieren.
+    \begin{block}{Schlecht}
+    \begin{itemize}
+        \item Crash bei mount mit dem Kernel Treiber auf OSD-Server (per Design).
+        \item Performance bei vielen kleinen Dateien/Datenbanken noch relativ gering (Hardware?).
+    \end{itemize}
+\end{block}
 \end{frame}
 
+\begin{frame}{bisherige Benchmarks}
+Benchmark: \url{https://rcs.num.math.uni-goettingen.de/virt-benchmark/composite.xml}
 
+\end{frame}
 \begin{frame}{Zusammenfassung}
 \begin{itemize}
-	\item Sehr vielversprechend
-	\item Einiges unvollst\"andig implementiert 
-	\item $\Rightarrow$ Warten auf stable
+	\item Sehr vielversprechend und in aktiver Entwicklung.
+\item Team sehr offen und hilfsbereit
+	\item Einiges unvollst\"andig implementiert (Sicherheit)
 \end{itemize}
 	\begin{center}
 	\large Fragen? Anregungen? Vorschl\"age? 
@@ -496,7 +661,7 @@ ceph-erweiterung?
 
 \begin{frame}{Literatur}
 	\bibliographystyle{apalike}
-	\bibliography{literature}	
+	\bibliography{ceph}	
 \end{frame}
 
 \end{document}
