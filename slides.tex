@@ -170,24 +170,35 @@
 
 \begin{frame}{DiscoFS - DISCOnnected File System}
 (Von Robin Martinjak) \href{DiscoFS}{https://github.com/rmartinjak/discofs}
-
-Idee: FS-Overlay-Schicht über lokalen Daten und remote Daten, die in Sync gehalten werden.
-
-Das erlaubt disconnected operations: Bei disconnect lokal, bei connect lokal und remote. 
-
-remote darf sich ebenfalls ändern,  worauf dann Conflict-Handling kommt.
+\begin{block}{Idee}
+FS-Overlay über lokalen Daten und remote Daten, die in Sync gehalten werden sollen.
+\end{block}
+\begin{itemize}
+    \item disconnected operations: Bei disconnect lokal, bei connect lokal und remote. 
+    \item Conflict-Handling wenn sich beide Quellen geändert haben.
+\end{itemize}
 
 Komponenten: 
+\begin{itemize}
+    \item Cache: lokale Daten
+    \item Sync table: Synctime of file objects
+    \item Job: Replikation organisieren
+    \item Database: Job und Sync-Daten speichern
+    \item State check Thread: Online-Status prüfen.
+    \item worker Thread: Jobs abarbeiten
+\end{itemize}
 
 \end{frame}
 
 \begin{frame}{Ceph-Erweiterung}
-Idee: Benutze CRUSH um eine zusaetzliche Replica eines Homes lokal auf dem Laptop abzulegen.
+    \begin{block}{Idee}
+Benutze CRUSH um eine zusätzliche Replica eines Homes lokal auf dem Laptop abzulegen.        
+    \end{block}
+    \begin{itemize}
+        \item Geht die Verbindung verloren sind alle Daten lokal und, theoretisch, kann der lokale Ceph-clientweiterarbeiten.
+        \item Das Wiederverbinden ists bereits implementiert, allerdings bräuchte man noch ein Conflict-Handling.
+    \end{itemize}
 
-Geht die Verbindung verloren sind alle Daten lokal und, theoretisch, kann der lokale Ceph-client 
-weiterarbeiten.
-
-Das Wiederverbinden ists bereits implementiert, allerdings braeuchte man noch ein Conflict-Handling.
 
 %potentially taking a crack at ceph-deploy
 %(https://github.com/ceph/ceph-deploy) in the meantime as that may be a
