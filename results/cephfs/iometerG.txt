@@ -1,0 +1,37 @@
+iometer: (groupid=0, jobs=1): err= 0: pid=7531: Tue Oct  1 18:32:14 2013
+  Description  : [Emulation of Intel IOmeter File Server Access Pattern]
+  read : io=3273.1MB, bw=832010 B/s, iops=133 , runt=4126079msec
+    slat (usec): min=405 , max=203579 , avg=1750.88, stdev=790.08
+    clat (usec): min=16 , max=31232K, avg=378876.76, stdev=355748.95
+     lat (msec): min=3 , max=31233 , avg=380.63, stdev=355.76
+    clat percentiles (msec):
+     |  1.00th=[  184],  5.00th=[  215], 10.00th=[  231], 20.00th=[  253],
+     | 30.00th=[  273], 40.00th=[  289], 50.00th=[  306], 60.00th=[  326],
+     | 70.00th=[  363], 80.00th=[  478], 90.00th=[  660], 95.00th=[  766],
+     | 99.00th=[ 1074], 99.50th=[ 1221], 99.90th=[ 1549], 99.95th=[ 1713],
+     | 99.99th=[ 2089]
+    bw (KB/s)  : min=    3, max= 3375, per=100.00%, avg=843.14, stdev=432.50
+  write: io=842059KB, bw=208979 B/s, iops=33 , runt=4126079msec
+    slat (msec): min=8 , max=30977 , avg=22.97, stdev=95.07
+    clat (msec): min=9 , max=31218 , avg=376.37, stdev=334.54
+     lat (msec): min=23 , max=31234 , avg=399.33, stdev=348.54
+    clat percentiles (msec):
+     |  1.00th=[  186],  5.00th=[  215], 10.00th=[  231], 20.00th=[  253],
+     | 30.00th=[  273], 40.00th=[  289], 50.00th=[  306], 60.00th=[  326],
+     | 70.00th=[  359], 80.00th=[  469], 90.00th=[  660], 95.00th=[  766],
+     | 99.00th=[ 1074], 99.50th=[ 1205], 99.90th=[ 1532], 99.95th=[ 1729],
+     | 99.99th=[ 2057]
+    bw (KB/s)  : min=    0, max= 1174, per=100.00%, avg=211.86, stdev=129.25
+    lat (usec) : 20=0.01%
+    lat (msec) : 4=0.01%, 10=0.01%, 50=0.01%, 100=0.01%, 250=18.31%
+    lat (msec) : 500=62.93%, 750=13.20%, 1000=4.09%, 2000=1.45%, >=2000=0.02%
+  cpu          : usr=0.71%, sys=2.92%, ctx=1362611, majf=0, minf=12434
+  IO depths    : 1=0.1%, 2=0.1%, 4=0.1%, 8=0.1%, 16=0.1%, 32=0.1%, >=64=100.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.1%, >=64=0.0%
+     issued    : total=r=549444/w=137485/d=0, short=r=0/w=0/d=0
+
+Run status group 0 (all jobs):
+   READ: io=3273.1MB, aggrb=812KB/s, minb=812KB/s, maxb=812KB/s, mint=4126079msec, maxt=4126079msec
+  WRITE: io=842058KB, aggrb=204KB/s, minb=204KB/s, maxb=204KB/s, mint=4126079msec, maxt=4126079msec
+
