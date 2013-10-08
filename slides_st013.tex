@@ -28,9 +28,9 @@
   morekeywords={*,...}               % if you want to add more keywords to the set
 }
 
-\title{Das Praxis-Problem von remote Filesystemen in der NAM}
-\subtitle{ Ceph, DiscoFS, Client-Sync, \ldots}
-\author{Jochen Schulz, Ralph Krimmel, Max Voit}
+\title{Verteilte Filesysteme}
+\subtitle{ Ceph, GlusterFS, Client-Sync (DiscoFS), \ldots}
+\author{Jochen Schulz, Ralph Krimmel, Max Voit, Piotr Kasprzak}
 
 
 
@@ -40,7 +40,7 @@
 		\titlepage
 	\end{frame}
 
-	\begin{frame}
+  \begin{frame}{Inhalt}
 		\tableofcontents
 	\end{frame}
 
@@ -70,11 +70,11 @@
 
 \begin{block}{Prinzipielle Vor- und Nachteile}
     \begin{itemize}
-        \item A: Flexibilität im Ort und Gerät (Keine Transferzeit)
+        \item A: Flexibilität im Ort und Gerät (Keine nennenswerte Transferzeit)
         \item A: Parallelität
         \item A: Homogenität und Synchrones Arbeiten (z.B. lokales Editieren , remote Ausführen)
         \item B: Mobilität des Geräts
-        \item B: Daten stets lokal (aber Transferzeit)
+        \item B: Daten stets lokal (aber grössere Transferzeit)
     \end{itemize}
     
 \end{block}
@@ -195,8 +195,8 @@ Komponenten:
 Benutze CRUSH um eine zusätzliche Replica eines Homes lokal auf dem Laptop abzulegen.        
     \end{block}
     \begin{itemize}
-        \item Geht die Verbindung verloren sind alle Daten lokal und, theoretisch, kann der lokale Ceph-clientweiterarbeiten.
-        \item Das Wiederverbinden ists bereits implementiert, allerdings bräuchte man noch ein Conflict-Handling.
+        \item Geht die Verbindung verloren sind alle Daten lokal und, theoretisch, kann der lokale Ceph-client weiterarbeiten.
+        \item Das Wiederverbinden ist bereits implementiert, allerdings bräuchte man noch ein Conflict-Handling.
     \end{itemize}
 
 
@@ -246,7 +246,7 @@ Benutze CRUSH um eine zusätzliche Replica eines Homes lokal auf dem Laptop abzu
 \end{frame}
 
 \begin{frame}{Zuverl\"assigkeit/Verf\"ugbarkeit}
-	Problem: Fehler sind mehr die Norm als die Ausnahme
+  \alert{Problem:} Fehler sind mehr die Norm als die Ausnahme
 	\begin{itemize}
 		\item System g\"unstiger Hardware
 		\item Fehler in Programmen %theres software that always crashes 
@@ -277,20 +277,20 @@ Benutze CRUSH um eine zusätzliche Replica eines Homes lokal auf dem Laptop abzu
 \end{frame}
 
 
-\begin{frame}{Typischer Zugriff (z.B. Hadoop)}
-	\begin{center}
-	\includegraphics[scale=0.2]{images/hdfsarchitecture.jpg}
-	\end{center}
-	\small
-	Quelle: \texttt{http://hadoop.apache.org/common/docs/r0.20.2/hdfs\_design.html}
-\end{frame}
+%\begin{frame}{Typischer Zugriff (z.B. Hadoop)}
+%	\begin{center}
+%	\includegraphics[scale=0.2]{images/hdfsarchitecture.jpg}
+%	\end{center}
+%	\small
+%	Quelle: \texttt{http://hadoop.apache.org/common/docs/r0.20.2/hdfs\_design.html}
+%\end{frame}
 
 \subsection{Auswahl verteilte Dateisysteme}
 \begin{frame}{Auswahl verteilte Dateisysteme}
 	\begin{description}	
         \item [Lustre]  Alter Kernel und nur ein Metadatenserver \\
         \item [Google FS] Propriet\"ar, ausgelegt auf große Dateien \\
-        \item [GlusterFS]  Nur FUSE, keine advanced features; im Vergleich Langsam (siehe Benchmark)\\
+        \item [GlusterFS]  Nur FUSE, keine advanced features\\
         \item [XtremeFS] nett ;) aber Fokus liegt auf Geo-Features\\
         \item [FHGS]  Propriet\"arer server, Opensource client. keine Redundanz, im HPC-Umfeld aber gut (Bei uns seit kurzem im Einsatz).
         \item [pNFS] Vielversprechend, bisher aber keine Tests durchgeführt (zu spät?)
@@ -301,7 +301,7 @@ Benutze CRUSH um eine zusätzliche Replica eines Homes lokal auf dem Laptop abzu
 
 \begin{frame}{Ceph - \"Ubersicht}
 	
-	Drei Komponenten:
+  \begin{block}{Drei Komponenten}
 	\begin{itemize}
         \item \alert{Client:} Posix\"ahnliche Schnittstelle %Stellt zur verfuegung
         \item \alert{OSD Cluster:} Speichert Daten und Metadaten
@@ -312,6 +312,14 @@ Benutze CRUSH um eine zusätzliche Replica eines Homes lokal auf dem Laptop abzu
 				\item Sicherheit (Noch nicht ausreichend implementiert)
 			\end{itemize}
 	\end{itemize}
+  \end{block}
+  \begin{block}{Drei Zugriffsmöglichkeiten}
+  \begin{itemize}
+    \item Object-Store (Swift, Amazon S3, RESTful)
+    \item Block-device (RBD)
+    \item Filesystem (CephFS, POSIX, Snapshots)
+  \end{itemize}
+  \end{block}
 \end{frame}
 
 \begin{frame}
@@ -343,7 +351,7 @@ Benutze CRUSH um eine zusätzliche Replica eines Homes lokal auf dem Laptop abzu
 	\end{itemize}	
 \end{frame}
 
-\begin{frame}{Dateizugriff}
+\begin{frame}{Dateizugriff (CephFS)}
 
 \begin{enumerate}
 	\item Client sendet Dateirequest an das MDS Cluster
@@ -367,7 +375,7 @@ Benutze CRUSH um eine zusätzliche Replica eines Homes lokal auf dem Laptop abzu
 \end{frame}
 
 \begin{frame}{Client Synchronisierung}
-	Problem: Mehrere Clients schreiben/lesen eine Datei gleichzeitig.
+  \alert{Problem:} Mehrere Clients schreiben/lesen eine Datei gleichzeitig.
 
 	\begin{itemize}	
 		\item Kein read caching/write buffering mehr
@@ -412,36 +420,17 @@ $R$ : Placement für $n$ Replicas
 %			\item Snapshot Metadaten
 %			\item RADOS Gateway Access Control Lists (ACLs).
 		\end{itemize}
-		\item Empfohlen: Disk je OSD
+		\item Empfohlen: Eine Platte je OSD
 
 	\end{itemize}
-\end{frame}
-
-
-
-\begin{frame}{Installation}
-
-	Einfach, Pakete vorhanden f\"ur:
+	Installation einfach, Pakete vorhanden f\"ur:
 	\begin{itemize}
-		\item Ubuntu
-		\begin{itemize}
-			\item natty
-			\item oneiric
-			\item precise
-		\end{itemize}
-		\item Debian
-		\begin{itemize}
-			\item sid
-			\item squeeze
-			\item wheezy
-		\end{itemize}
-		\item RPM 
-		\begin{itemize}
-			\item Selbst bauen per \texttt{rpmbuild}
-		\end{itemize}
+		\item DEB (Ubuntu/Debian)
+		\item RPM (CentOS, RHEL)
 	\end{itemize}
-
 \end{frame}
+
+
 
 
 \begin{frame}{Cluster Design}
@@ -457,7 +446,7 @@ $R$ : Placement für $n$ Replicas
 \begin{frame}{Object Storage Daemon}
 	\begin{itemize}
 		\item Mehrere OSDs pro Host m\"oglich
-		\item Hardware Vor.:
+		\item Hardware Empfehlung:
 		\begin{itemize}
 			\item Viele Festplatten 
 			\item Viel Ram (besseres Caching) (min. 500MB/Daemon)
@@ -474,7 +463,7 @@ $R$ : Placement für $n$ Replicas
 \begin{frame}{Metadaten Daemon}
 	\begin{itemize}
 
-		\item Hardware Vor.:
+		\item Hardware Empfehlung:
 		\begin{itemize}
 			\item Sehr viel Ram
 			\item Schnelle CPU
@@ -491,14 +480,14 @@ $R$ : Placement für $n$ Replicas
 
 \begin{frame}{Monitor Daemon}
 	\begin{itemize}
-		\item Hardware Vor.:
+		\item Hardware Empfehlung:
 		\begin{itemize}
 			\item Einige GB Festplattenspeicher
 			\item Feste IP
 		\end{itemize}
 		\item Anzahl:
 		\begin{itemize}
-			\item Ungerade Anzahl!
+			\item Ungerade Anzahl! (Split Brain)
 			\item 1 ist ok
 			\item 3 ideal f\"ur die meisten Anwendungsf\"alle
 			\item Mehr nur f\"ur sehr große Cluster
@@ -509,9 +498,9 @@ $R$ : Placement für $n$ Replicas
 \begin{frame}[fragile]{Beispiel ceph.conf}
 
 \begin{lstlisting}
-;This is a comment
 [global]
-	auth supported = cephx
+auth supported = cephx
+osd pool default size = 2  # Write an object 2 times.
 [osd]
 	osd journal size = 1000
 [mon.a]
@@ -538,17 +527,12 @@ $R$ : Placement für $n$ Replicas
 
 \begin{frame}{Deployment}
 	\begin{itemize}
-		\item Chef cloud management tool (nicht getestet)
-		\item \textbf{mkcephfs} (f\"ur Testzwecke)
+		\item \textbf{ceph-deploy}
 			\begin{enumerate}
 				\item Ben\"otigt passwortlosen \texttt{root}-Login auf allen Hosts
-				\item Kopieren der ceph.conf auf alle Hosts
-				\item Erstellen der Standardordner z.B. f\"ur myserver03
-				\begin{description}
-					\item \texttt{mkdir /var/lib/ceph/osd/ceph-2}
-					\item \texttt{mkdir /var/lib/ceph/mon/ceph-c}
-				\end{description}
-				\item \texttt{mkcephfs -a -c /etc/ceph/ceph.conf -k /etc/ceph/ceph.keyring}
+        \item ceph-deploy new mon
+        \item ceph-deploy osd create
+				\item ceph-deploy mds create
 			\end{enumerate}
 	\end{itemize}
 \end{frame}
@@ -557,77 +541,143 @@ $R$ : Placement für $n$ Replicas
 \begin{frame}[fragile]{CRUSH-map}
     \begin{lstlisting}
 # buckets
-host paimutan {
-        id -2           # do not change unnecessarily
-        # weight 1.000
+host c096-137 {
+        id -6           # do not change unnecessarily
+        # weight 2.000   
         alg straw
         hash 0  # rjenkins1
-        item osd.0 weight 1.000
+        item osd.6 weight 1.000
+        item osd.7 weight 1.000
 }
-host darjeeling {
-        id -4           # do not change unnecessarily
-        # weight 1.000
-        alg straw
-        hash 0  # rjenkins1
-        item osd.1 weight 1.000
-}
+...
 rack unknownrack {
         id -3           # do not change unnecessarily
         # weight 6.000
         alg straw
         hash 0  # rjenkins1
-        item paimutan weight 1.000
-        item darjeeling weight 1.000
-        item gunpowder weight 1.000
-        item earlgrey weight 1.000
-        item lemongrass weight 1.000
-        item oolong weight 1.000
+        item c096-134 weight 2.000
+        item c096-135 weight 2.000
+        item c096-136 weight 2.000
+        item c096-137 weight 2.000
 }
-pool default {
+root default {
         id -1           # do not change unnecessarily
-        # weight 6.000
+        # weight 8.000
         alg straw
         hash 0  # rjenkins1
-        item unknownrack weight 6.000
+        item unknownrack weight 8.000
 }
-    \end{lstlisting}
-\end{frame}
-
-\begin{frame}{Zugriff}
-	\begin{itemize}
-		\item Kerneltreiber
-		\item FUSE
-		\item librados (RBD)
-		\item Rados Gateway (RESTful interface)
-	\end{itemize}
+\end{lstlisting}
 \end{frame}
 
 \section{Erfahrungen}
 
 \begin{frame}{CephFS}
     \begin{block}{Gut}
-        Selbstheilung sehr gut.
+      \begin{itemize}
+        \item Selbstheilung sehr gut.
+        \item Feature-Set sehr gut (insbesondere Zugriffsmöglichkeiten).
+      \end{itemize}
+        
     \end{block}
     %nur bei extremen Ausfaellen und Netz-beintraechtigung ging der Cluster in die Knie (degraded).
     %Nur einmal bei so einem Test gab es permanenten Datenverlust und wir mussten den cluster neu formatieren.
     \begin{block}{Schlecht}
     \begin{itemize}
         \item Crash bei mount mit dem Kernel Treiber auf OSD-Server (per Design).
-        \item Performance bei vielen kleinen Dateien/Datenbanken noch relativ gering (Hardware?).
+        \item Performance bei vielen kleinen Dateien/Datenbanken noch relativ gering (Hardware? Laut Entwicklern ist auch CephFS noch nicht ganz so ausgereift).
     \end{itemize}
 \end{block}
 \end{frame}
 
-\begin{frame}{bisherige Benchmarks}
-Benchmark: \url{https://rcs.num.math.uni-goettingen.de/virt-benchmark/composite.xml}
+\begin{frame}[fragile]{Alte Tests}
+	\begin{center}
+	\includegraphics[width=0.35\textwidth]{images/phoronixtest.png}
+	\end{center}
 
+  Benchmark: \url{https://rcs.num.math.uni-goettingen.de/virt-benchmark/composite.xml}
 \end{frame}
-\begin{frame}{Zusammenfassung}
+
+\begin{frame}[fragile]{Vorläufige neue Tests} 
+  \alert{NFS }: 1 Node, 12 Platten \\
+  \alert{NFS (MI)}: 1 Node, 8 Platten (neuer) \\
+  \alert{CephFS}:  6 Nodes, 4 OSD-Nodes, 8 SAN-Platten, 2 Replica
+    \begin{center}
+    \begin{tabular}[c]{|l|c|c|c|c|}
+      \hline
+    Setup &  read Kb/s & write Kb/s & read (64) & write (64) \\
+    \hline\hline
+    NFS (MI) & 78995 & 44613 & 8623 & 2162 \\ 
+    NFS & 316 & 164 &  790 & 223 \\
+    CephFS & 137613 & 18012 & 843 & 211 \\
+    \hline
+    \end{tabular}
+  \end{center}
+latenzen
+iops
+  %  read/writeG
+%     READ: io=16384MB, aggrb=137612KB/s, minb=137612KB/s, maxb=137612KB/s, mint=121916msec, maxt=121916msec
+ %      WRITE: io=16384MB, aggrb=18011KB/s, minb=18011KB/s, maxb=18011KB/s, mint=931468msec, maxt=931468msec
+
+%  iometerG
+%     READ: io=3273.1MB, aggrb=812KB/s, minb=812KB/s, maxb=812KB/s, mint=4126079msec, maxt=4126079msec
+%       WRITE: io=842058KB, aggrb=204KB/s, minb=204KB/s, maxb=204KB/s, mint=4126079msec, maxt=4126079msec
+
+%write/write_bwS.log_bw.log
+%write
+%53.0
+%495.0
+%164.385394071
+%writeG/write_bw.log_bw.log
+%write
+%247.0
+%18000.0
+%3151.56611847
+%iometer/iometer64_bw.log_bw.log
+%write
+%0.0
+%4828.0
+%223.943341605
+%read
+%0.0
+%3611.0
+%790.428901032
+%iometerG/iometer64_bw.log_bw.log
+%write
+%0.0
+%1174.0
+%211.859350027
+%read
+%3.0
+%3375.0
+%843.140103682
+%read/read_bwS.log_bw.log
+%read
+%102.0
+%17454.0
+%316.876559715
+%readG/read_bw.log_bw.log
+%read
+%1051.0
+%70551.0
+%18327.7570997
+\end{frame}
+
+
+\begin{frame}[fragile]{Zusammenfassung}
+  \begin{block}{Positiv}
 \begin{itemize}
 	\item Sehr vielversprechend und in aktiver Entwicklung.
-\item Team sehr offen und hilfsbereit
+\item Team sehr offen und hilfsbereit.
+\item Fülle an Zugriffsmöglichkeiten und Skalierbarkeit.
+    \end{itemize}
+  \end{block}
+  \begin{block}{Negativ}
+\begin{itemize}
 	\item Einiges unvollst\"andig implementiert (Sicherheit)
+  \item Insbesondere CephFS noch nicht voll Produktionsreif
 \end{itemize}
+  \end{block}
 	\begin{center}
 	\large Fragen? Anregungen? Vorschl\"age? 
 	\end{center}
